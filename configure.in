@@ -1,0 +1,17 @@
+AC_INIT(configure.in)
+
+AM_CONFIG_HEADER(config.h)
+AM_INIT_AUTOMAKE(tune, 0.2.0)
+
+AC_LANG_CPLUSPLUS
+AC_PROG_CXX
+AM_PROG_LIBTOOL
+
+AC_CHECK_LIB(pthread, pthread_create,[LIBPTHREAD="yes"])
+if test x$LIBPTHREAD != "xyes"; then
+  AC_MSG_RESULT(install libpthread)
+  exit 1
+fi
+
+
+AC_OUTPUT(Makefile src/Makefile)

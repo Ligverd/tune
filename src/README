@@ -1,0 +1,6 @@
+Tune 0.2.0 [21/Dec/2010]
+
+- BUG Fix
+- Measurement of subscribers Uab, Uag, Ubg, Rab, Rag, Rbg, Cab analogic Win SMPSubTest.
+  command izmab number subscriber
+
