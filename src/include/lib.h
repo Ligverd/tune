@@ -1,6 +1,8 @@
 #ifndef _LIB_H_
 #define _LIB_H_
 
+#include <unistd.h>
+
 #ifdef WIN32
 #pragma warning(disable:4786)
 #endif

@@ -183,12 +183,57 @@ extern CCfgUniPar glVisConfUnipar;
 
 #endif
 
+// x86 & x86_64 emulate pointer 32 bits
+
+// not very elegant, use static property
+class PtrBuffer {
+public:
+  static char *ptrData;
+  static int   ptrShift;
+};
+
+char* PtrBuffer::ptrData = NULL;
+int   PtrBuffer::ptrShift= 0;
+
+// template pointer 32 bit  T*
+template <class T>
+class Ptr32 : public PtrBuffer {
+public:
+  DWORD pointer;
+
+  T* operator->() {
+    return (T*) (ptrData + pointer - ptrShift);
+  }
+
+  T& operator[](int i) {
+    return ( (T*)(ptrData + pointer - ptrShift) )[i];
+  }
+
+  Ptr32& operator=( DWORD newPointer ) {
+    pointer = newPointer + ptrShift;
+  }
+
+  void operator+=( DWORD pointerOffset ) {
+    pointer += pointerOffset;
+  }
+
+  void operator-=( DWORD pointerOffset ) {
+    pointer -= pointerOffset;
+  }
+
+  operator T*() {
+    return (T*) (ptrData + pointer - ptrShift);
+  }
+
+};
+
+
 typedef union
 {
     BYTE flag;
     DWORD dword;
-    char *str;
-    char **set;
+    Ptr32<char>  str;
+    Ptr32<char>  set[];
     char ch;
 } TCfgUniValue;
 
@@ -205,7 +250,7 @@ class CCfgUniPar
 {
   public:
     short type;
-    char *name;
+    Ptr32<char> name;
     TCfgUniValue value;
 };
 
@@ -216,7 +261,7 @@ class CCfgProfil
     short type;
 
     WORD numPar;
-    CCfgUniPar *par;
+    Ptr32<CCfgUniPar> par;
 };
 
 // ============================== PORT =======================
@@ -226,9 +271,9 @@ class CCfgPort:public CSet
   public:
     short prof;
     short group;
-    char *numberA;              // знак '=' впереди занчит direct направление '+','-' - с икрементом
-    char *numberB;              // номера не могут повторяться
-    char *prefix;               // префикс может повторяться, а может и нет
+    Ptr32<char> numberA;              // знак '=' впереди занчит direct направление '+','-' - с икрементом
+    Ptr32<char> numberB;              // номера не могут повторяться
+    Ptr32<char> prefix;               // префикс может повторяться, а может и нет
 };
 
 typedef short TCfgIdx;
@@ -237,10 +282,10 @@ class CCfgPcm:public CSet
 {
   public:
     short prof;
-    char *name;                 // !!! пока не поддерживается
+    Ptr32<char> name;                 // !!! пока не поддерживается
 
     WORD numPort;
-    CCfgPort *port;
+    Ptr32<CCfgPort> port;
 };
 
 class CCfgSlot:public CSet
@@ -249,7 +294,7 @@ class CCfgSlot:public CSet
     short prof;
 
     WORD numPort;
-    CCfgPort *port;
+    Ptr32<CCfgPort> port;
 };
 
 class CCfgAir:public CSet
@@ -258,7 +303,7 @@ class CCfgAir:public CSet
     short prof;
 
     WORD numPort;
-    CCfgPort *port;
+    Ptr32<CCfgPort> port;
 };
 
 // ============================== ROUTING =======================
@@ -275,30 +320,30 @@ class CCfgDirCycle
 {
   public:
     WORD numGroup;
-    short *group;
+    Ptr32<short> group;
 };
 
 class CCfgDir
 {
   public:
-    char *name;
+    Ptr32<char> name;
 
     WORD numCycle;
-    CCfgDirCycle *cycle;
+    Ptr32<CCfgDirCycle> cycle;
 
     WORD numPar;
-    CCfgUniPar *par;
+    Ptr32<CCfgUniPar> par;
 };
 
 class CCfgRouteRecord
 {
   public:
-    char *begin;
-    char *end;
-    char *trans;
-    char *abegin;
-    char *aend;
-    char *atrans;
+    Ptr32<char> begin;
+    Ptr32<char> end;
+    Ptr32<char> trans;
+    Ptr32<char> abegin;
+    Ptr32<char> aend;
+    Ptr32<char> atrans;
     DWORD dir;
     BYTE max;                   // если = 0 то не задан
     short profProp;
@@ -309,10 +354,10 @@ class CCfgRouteRecord
 class CCfgRoute
 {
   public:
-    char *name;
+    Ptr32<char> name;
 
     WORD numRec;
-    CCfgRouteRecord *rec;
+    Ptr32<CCfgRouteRecord> rec;
 };
 
 // ============================== MODULE =======================
@@ -322,16 +367,16 @@ class CCfgModule:public CSet
   public:
     short type;                 // DEV_NONE DEV_MAL DEV_MPA DEV_MPB DEV_FT
     short prof;                 // если = -1 то не задан
-    char *name;
+    Ptr32<char> name;
 
     WORD numPcm;
-    CCfgPcm *pcm;
+    Ptr32<CCfgPcm> pcm;
 
     WORD numSlot;
-    CCfgSlot *slot;
+    Ptr32<CCfgSlot> slot;
 
     WORD numAir;
-    CCfgAir *air;
+    Ptr32<CCfgAir> air;
 };
 
 // ============================== COMMON =======================
@@ -339,10 +384,10 @@ class CCfgModule:public CSet
 class CCfgCommon
 {
   public:
-    char *name;
+    Ptr32<char> name;
 
     WORD numPar;
-    CCfgUniPar *par;
+    Ptr32<CCfgUniPar> par;
 };
 
 // ============================== CONFIGA =======================
@@ -351,24 +396,24 @@ class CCfg
 {
   public:
     WORD numModule;
-    CCfgModule *module;         // в системе существуют по параметру PLACE
+    Ptr32<CCfgModule> module;         // в системе существуют по параметру PLACE
 
     WORD numProfil;
-    CCfgProfil *profil;         // в системе существуют по номерам
+    Ptr32<CCfgProfil> profil;         // в системе существуют по номерам
 
     WORD numGroup;
-    CCfgGroup *group;           // в системе существуют по номерам
+    Ptr32<CCfgGroup> group;           // в системе существуют по номерам
 
     WORD numDir;
-    CCfgDir *dir;               // в системе существуют по номерам
+    Ptr32<CCfgDir> dir;               // в системе существуют по номерам
 
     WORD numRoute;
-    CCfgRoute *route;           // в системе существуют по номерам
+    Ptr32<CCfgRoute> route;           // в системе существуют по номерам
 
     CCfgCommon common;
 
     WORD numNumberProfil;
-    void *profilNumber;         // пока не используется
+    Ptr32<char> profilNumber;         // пока не используется
 };
 
 
@@ -381,7 +426,7 @@ class CAll
     BYTE Version;               // при каждом имзменении структыры увеличивать на 1
 
     short numCfg;
-    CCfg *cfg[MAX_CFG];
+    Ptr32<CCfg> cfg[MAX_CFG]; // CCfg *cfg[MAX_CFG]; // @TODO
 
     TClock time;
     WORD nControlSum;
@@ -395,148 +440,9 @@ class CAll
     // method
     inline bool decodeCfg(void)
     {
-#define DECODE(X) ( (X) ? ( (*(BYTE**)&(X)) += delta ) : 0 )
-//    #define DECODE(X) {if (X)   (*(BYTE**)&(X)) += delta;  }
-        int n, i, j, kk;
+        PtrBuffer::ptrData = (char*)this;
+        PtrBuffer::ptrShift= address;
 
-
-        DWORD delta = (DWORD) this - address;
-
-        for (n = 0; n < numCfg; n++)
-        {
-            DECODE(cfg[n]);
-
-
-#ifdef _ATS_
-            CProcess::DI();
-            char tmp[100];
-              sprintformat(tmp, "TTT: file = %s line = %d", __FILE__,
-                           __LINE__);
-              CProcess::EI();
-#endif
-              DECODE(cfg[n]->module);
-
-            for (i = 0; i < cfg[n]->numModule; i++)
-            {
-                DECODE(cfg[n]->module[i].name);
-                DECODE(cfg[n]->module[i].pcm);
-                for (j = 0; j < cfg[n]->module[i].numPcm; j++)
-                {
-                    DECODE(cfg[n]->module[i].pcm[j].name);
-                    DECODE(cfg[n]->module[i].pcm[j].port);
-                    for (kk = 0; kk < cfg[n]->module[i].pcm[j].numPort; kk++)
-                    {
-                        DECODE(cfg[n]->module[i].pcm[j].port[kk].numberA);
-                        DECODE(cfg[n]->module[i].pcm[j].port[kk].numberB);
-                        DECODE(cfg[n]->module[i].pcm[j].port[kk].prefix);
-                    }
-                }
-                DECODE(cfg[n]->module[i].slot);
-                for (j = 0; j < cfg[n]->module[i].numSlot; j++)
-                {
-                    DECODE(cfg[n]->module[i].slot[j].port);
-                    for (kk = 0; kk < cfg[n]->module[i].slot[j].numPort; kk++)
-                    {
-                        DECODE(cfg[n]->module[i].slot[j].port[kk].numberA);
-                        DECODE(cfg[n]->module[i].slot[j].port[kk].numberB);
-                        DECODE(cfg[n]->module[i].slot[j].port[kk].prefix);
-                    }
-                }
-                DECODE(cfg[n]->module[i].air);
-                for (j = 0; j < cfg[n]->module[i].numAir; j++)
-                {
-                    DECODE(cfg[n]->module[i].air[j].port);
-                    for (kk = 0; kk < cfg[n]->module[i].air[j].numPort; kk++)
-                    {
-                        DECODE(cfg[n]->module[i].air[j].port[kk].numberA);
-                        DECODE(cfg[n]->module[i].air[j].port[kk].numberB);
-                        DECODE(cfg[n]->module[i].air[j].port[kk].prefix);
-                    }
-                }
-            }
-            DECODE(cfg[n]->profil);
-            for (i = 0; i < cfg[n]->numProfil; i++)
-            {
-                DECODE(cfg[n]->profil[i].par);
-                for (j = 0; j < cfg[n]->profil[i].numPar; j++)
-                {
-                    DECODE(cfg[n]->profil[i].par[j].name);
-                    if (cfg[n]->profil[i].par[j].type == PAR_STRING)
-                        DECODE(cfg[n]->profil[i].par[j].value.str);
-                    if (cfg[n]->profil[i].par[j].type == PAR_SETSTR)
-                    {
-                        DECODE(cfg[n]->profil[i].par[j].value.set);
-                        for (int s = 0; cfg[n]->profil[i].par[j].value.set[s];
-                             s++)
-                            DECODE(cfg[n]->profil[i].par[j].value.set[s]);
-                    }
-                }
-            }
-            DECODE(cfg[n]->group);
-            for (i = 0; i < cfg[n]->numGroup; i++)
-            {
-            }
-            DECODE(cfg[n]->dir);
-            for (i = 0; i < cfg[n]->numDir; i++)
-            {
-                DECODE(cfg[n]->dir[i].name);
-                DECODE(cfg[n]->dir[i].cycle);
-                for (j = 0; j < cfg[n]->dir[i].numCycle; j++)
-                {
-                    DECODE(cfg[n]->dir[i].cycle[j].group);
-                    for (kk = 0; kk < cfg[n]->dir[i].cycle[j].numGroup; kk++)
-                    {
-                    }
-                }
-                DECODE(cfg[n]->dir[i].par);
-                for (j = 0; j < cfg[n]->dir[i].numPar; j++)
-                {
-                    DECODE(cfg[n]->dir[i].par[j].name);
-                    if (cfg[n]->dir[i].par[j].type == PAR_STRING)
-                        DECODE(cfg[n]->dir[i].par[j].value.str);
-                    if (cfg[n]->dir[i].par[j].type == PAR_SETSTR)
-                    {
-                        DECODE(cfg[n]->dir[i].par[j].value.set);
-                        for (int s = 0; cfg[n]->dir[i].par[j].value.set[s];
-                             s++)
-                            DECODE(cfg[n]->dir[i].par[j].value.set[s]);
-                    }
-                }
-            }
-            DECODE(cfg[n]->route);
-            for (i = 0; i < cfg[n]->numRoute; i++)
-            {
-                DECODE(cfg[n]->route[i].name);
-                DECODE(cfg[n]->route[i].rec);
-                for (j = 0; j < cfg[n]->route[i].numRec; j++)
-                {
-                    DECODE(cfg[n]->route[i].rec[j].begin);
-                    DECODE(cfg[n]->route[i].rec[j].end);
-                    DECODE(cfg[n]->route[i].rec[j].trans);
-                    DECODE(cfg[n]->route[i].rec[j].abegin);
-                    DECODE(cfg[n]->route[i].rec[j].aend);
-                    DECODE(cfg[n]->route[i].rec[j].atrans);
-                }
-            }
-            DECODE(cfg[n]->common.name);
-            DECODE(cfg[n]->common.par);
-            {
-                for (j = 0; j < cfg[n]->common.numPar; j++)
-                {
-                    DECODE(cfg[n]->common.par[j].name);
-                    if (cfg[n]->common.par[j].type == PAR_STRING)
-                        DECODE(cfg[n]->common.par[j].value.str);
-                    if (cfg[n]->common.par[j].type == PAR_SETSTR)
-                    {
-                        DECODE(cfg[n]->common.par[j].value.set);
-                        for (int s = 0; cfg[n]->common.par[j].value.set[s];
-                             s++)
-                            DECODE(cfg[n]->common.par[j].value.set[s]);
-                    }
-                }
-            }
-        }
-        address = (DWORD) this;
         return true;
     }
 

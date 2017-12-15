@@ -73,16 +73,18 @@ bool StrToLog(const char *str)
     int fd;
     bool fret = true;
 
-
-    if (Parser.sLogFile != NULL)
-        if ((fd = open(Parser.sLogFile, O_RDWR | O_CREAT | O_APPEND, 0666)) < 0)
-	{
-    	    printf("Can't write to log file:%s\n", Parser.sLogFile);
-    	    return false;
-        }
-    if (write(fd, str, strlen(str)) < 0)
+    if (Parser.sLogFile != NULL) {
+      if ((fd = open(Parser.sLogFile, O_RDWR | O_CREAT | O_APPEND, 0666)) < 0) {
+        printf("Can't write to log file:%s\n", Parser.sLogFile);
+        return false;
+      }
+      if (write(fd, str, strlen(str)) < 0)
         fret = false;
-    close(fd);
+
+      close(fd);
+    }else{
+      return false;
+    }
 
     return fret;
 }
@@ -102,8 +104,6 @@ void Loger(const char *str)
     StrToLog(logstr);
     delete logstr;
 }
-
-                                                                              
 
 bool make_nonblock(int sock)
 {
@@ -497,7 +497,7 @@ void FillListAbon(CCfg * pCfg)
                     if (pProfil[pPort[k].prof].type ==
                         (SIGNALLING_EXT + 0x100))
                     {
-                        std::string sTmp = pPort[k].numberA;
+                        std::string sTmp = (char*)pPort[k].numberA;
 //                        if((sTmp.data())[0]== (char)"+")
                         if (sTmp.find('+', 1) != std::string::npos)
                             sTmp.erase(sTmp.length() - 1);
@@ -535,7 +535,7 @@ void FillListAbon(CCfg * pCfg)
                     if (pProfil[pPort[k].prof].type ==
                         (SIGNALLING_EXT + 0x100))
                     {
-                        std::string sTmp = pPort[k].numberA;
+                        std::string sTmp = (char*)pPort[k].numberA;
                         if (sTmp.find('+', 1) != std::string::npos)
 //                        if((sTmp.data())[0]== (char)"+")
                             sTmp.erase(sTmp.length() - 1);
@@ -829,6 +829,11 @@ void *Server_ptread(void *arg)
                 }
                 else
                 {
+                    // avoid usage of descriptor 0
+                    if (clnt_fd==0) {
+                      clnt_fd = dup(clnt_fd);
+                      close(0);
+                    }
                     for (i = 0; i < MAX_CLIENT; i++)
                         if (!Client_fd[i])
                             break;

@@ -1,6 +1,8 @@
 #ifndef __TYPE_H__
 #define __TYPE_H__
 
+#include <stdint.h>
+
 #ifdef  ARM
     #include  <memory.h>
 #else
@@ -47,10 +49,10 @@
 
 #define NOP5 { __asm("nop"); __asm("nop"); __asm("nop"); __asm("nop"); __asm("nop"); }
 
-typedef unsigned long   DWORD ; // 32
-typedef unsigned short  WORD  ; // 16
-typedef unsigned char   BYTE  ; //  8
-typedef unsigned char   uc;
+typedef uint32_t DWORD ; // 32
+typedef uint16_t WORD  ; // 16
+typedef unsigned char  BYTE  ; //  8
+typedef unsigned char  uc;
 
 
 //#define TRUE  1
